@@ -9,7 +9,7 @@
     <p v-text="age" style="width: 100px;height:100px;background: yellow"></p>
     <input type="text" v-value="age" v-onInput="input">
 </div>
-<script src="index.js"></script>
+<script src="./dist/vvv.js"></script>
 <script>
     const v = new VVV({
         el: "#app",
@@ -20,8 +20,8 @@
             click(e) {
                 this.name++
             },
-            input(e){
-               this.age = e.target.value
+            input(e) {
+                this.age = e.target.value
             }
         }
     })

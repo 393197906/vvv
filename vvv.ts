@@ -1,8 +1,16 @@
-const DIRECTIVES = {
+type DirectiveFunction = (el: any, value: any) => void
+type DirectiveObject = {
+    eventName: string
+}
+
+interface Directive {
+    [key: string]: DirectiveFunction | DirectiveObject
+}
+
+const DIRECTIVES: Directive = {
     "text": function (el, value) {
         el.textContent = value || ""
     },
-    "module": {},
     "value": function (el, value) {
         el.value = value || ""
     },
@@ -15,11 +23,33 @@ const DIRECTIVES = {
 }
 
 const prefix = "v-"
-const directiveNames = Object.keys(DIRECTIVES).map(key => `[${prefix}${key}]`).join()
+const directiveNames: string = Object.keys(DIRECTIVES).map(key => `[${prefix}${key}]`).join()
+
+interface Attributes<T> {
+    [key: string]: T
+}
+
+interface Opts {
+    el: string,
+    data: Attributes<any>,
+    methods: Attributes<() => any>
+}
+
+interface Bind {
+    [key: string]: string[] | HTMLElement
+}
+
 const VVV = class {
-    constructor(opts) {
+    $el: HTMLElement | null
+    $methods: Opts['methods']
+    $els: NodeListOf<HTMLElement>
+    $binds: Bind[]
+    $data: Opts['data']
+
+    constructor(opts: Opts) {
         this.$el = opts.el ? document.querySelector(opts.el) : null
         this.$methods = opts.methods
+        if (!this.$el) throw new Error("error")
         this.$els = this.$el.querySelectorAll(directiveNames)
 
         this.$binds = []
@@ -34,7 +64,7 @@ const VVV = class {
                 })
                 if (!binds.length) return target[key] = value
                 binds.forEach(bind => {
-                    const bindDirectives = bind[key]
+                    const bindDirectives = bind[key as string] as string[]
                     bindDirectives.forEach(item => {
                         const name = item.split(prefix)[item.split(prefix).length - 1]
                         const directive = DIRECTIVES[name]
@@ -44,11 +74,11 @@ const VVV = class {
                 })
                 return target[key] = value
             }
-        });
+        } as ProxyHandler<any>);
 
-        this.$binds = Array.prototype.map.call(this.$els, item => {
+        this.$binds = Array.prototype.map.call(this.$els, (item: HTMLElement) => {
             const {attributes} = item
-            const result = {
+            const result: Bind = {
                 el: item,
             }
             for (let i = 0; i < attributes.length; i++) {
@@ -57,14 +87,14 @@ const VVV = class {
                     const methodsName = attr.value
                     if (this.$methods[methodsName]) {
                         const name = attr.name.split(prefix)[attr.name.split(prefix).length - 1]
-                        DIRECTIVES[name] && item.addEventListener(DIRECTIVES[name].eventName, this.$methods[methodsName].bind(this.$data))
+                        DIRECTIVES[name] && item.addEventListener((DIRECTIVES[name] as DirectiveObject).eventName, this.$methods[methodsName].bind(this.$data))
                     }
                     break
                 }
-                result[attr.value] = Array.isArray(result[attr.value]) ? [...result[attr.value], attr.name] : [attr.name]
+                result[attr.value] = Array.isArray(result[attr.value]) ? [...(result[attr.value] as string[]), attr.name] : [attr.name]
             }
             return result
-        })
+        }) as Bind[]
 
 
         for (let key in opts.data || {}) {
@@ -73,6 +103,3 @@ const VVV = class {
 
     }
 }
-
-
-
