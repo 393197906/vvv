@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div id="app">
+    <p v-text="age" style="width: 100px;height:100px;background: yellow"></p>
+    <input type="text" v-value="age" v-onInput="input">
+</div>
+<script src="index.js"></script>
+<script>
+    const v = new VVV({
+        el: "#app",
+        data: {
+            age: 789
+        },
+        methods: {
+            click(e) {
+                this.name++
+            },
+            input(e){
+               this.age = e.target.value
+            }
+        }
+    })
+</script>
+</body>
+</html>
