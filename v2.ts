@@ -21,21 +21,37 @@ const pop = (w: watcher) => {
 
 class watcher {
     private value: any
+    private eKeys: string[]
     private vm: V2
     private callback: (value: any, oldValue: any) => any
-    private expression: string
+    public expression: string
 
     constructor(vm: V2, expression: string, callback: (value: any, oldValue: any) => any) {
         this.vm = vm
-        this.expression = expression
+        this.eKeys = expression.split(".").filter(item => item.trim())
+        this.expression = this.eKeys[this.eKeys.length - 1]
         this.callback = callback
-        push(this)
-        this.value = this.getValue()
-        pop(this)
+
+        this.value = this.getValue(exp => {
+            push(this)
+            exp()
+            pop(this)
+        })
+
     }
 
-    getValue(): any {
-        return this.vm.$data[this.expression]
+    getValue(fn: (exp: () => void) => void | undefined): any {
+        let value = this.vm.$data
+        this.eKeys.forEach((key, index) => {
+            if (index === this.eKeys.length - 1 && fn) {
+                return fn(() => {
+                    value = value[key]
+                })
+            }
+            value = value[key]
+
+        })
+        return value
     }
 
     addSub(dep: Dep) {
@@ -44,7 +60,7 @@ class watcher {
 
     update() {
         const oldValue = this.value
-        this.value = this.getValue()
+        this.value = this.getValue(exp => exp())
         this.callback(this.value, oldValue)
     }
 }
@@ -59,8 +75,8 @@ class Dep {
         }
     }
 
-    notfiy() {
-        this.subs.forEach(watch => {
+    notfiy(key: string) {
+        this.subs.filter(watch => watch.expression === key).forEach(watch => {
             watch.update()
         })
     }
@@ -72,10 +88,17 @@ class baseClass {
 
     }
 
-    toObserver<T extends object>(data: T) {
+    private proxySet = new WeakSet();
+
+    toObserver<T extends object>(data: T): any {
+        if (!(typeof data === 'object' && !(this.proxySet.has(data)))) {
+            return data
+        }
         const dep = new Dep()
-        return new Proxy(data, {
+        const that = this
+        const proxy = new Proxy(data, {
             get(target: T, p: string, receiver: any) {
+                (target as any)[p] = that.toObserver((target as any)[p])
                 dep.recive()
                 return (target as any)[p]
             },
@@ -83,11 +106,13 @@ class baseClass {
                 const oldValue = Reflect.get(target, p, receiver)
                 const result = Reflect.set(target, p, value, receiver)
                 if (oldValue !== value) {
-                    dep.notfiy()
+                    dep.notfiy(p as string)
                 }
                 return result
             }
         })
+        that.proxySet.add(proxy)
+        return proxy
     }
 
 
@@ -106,7 +131,7 @@ class V2 extends baseClass {
         this.$el = document.querySelector(el)
         this.$data = this.toObserver(data)
         this.compile()
-        this.watch("age", (value, oldValue) => {
+        this.watch("test.age", (value, oldValue) => {
             console.log("age:", oldValue);
             console.log("age:", value);
         })
@@ -114,6 +139,7 @@ class V2 extends baseClass {
             console.log("name:", oldValue);
             console.log("name:", value);
         })
+        this.$data.test.age = 222;
     }
 
     watch(expression: string, cb: (value: any, oldValue: any) => any) {
