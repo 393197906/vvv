@@ -95,11 +95,8 @@ const VVV = class {
             }
             return result
         }) as Bind[]
-
-
         for (let key in opts.data || {}) {
             this.$data[key] = opts.data[key]
         }
-
     }
 }

@@ -7,14 +7,14 @@
 <body>
 <div id="app">
     <p v-text="age" style="width: 100px;height:100px;background: yellow"></p>
-    <input type="text" v-value="age" v-onInput="input">
 </div>
-<script src="./dist/vvv.js"></script>
+<script src="./dist/v2.js"></script>
 <script>
-    const v = new VVV({
+    const v = new V2({
         el: "#app",
         data: {
-            age: 789
+            age: 789,
+            name:'name'
         },
         methods: {
             click(e) {
